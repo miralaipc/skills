@@ -271,81 +271,95 @@ Comp set definition, STR UAE / CBRE MENA data sources, key assumptions table
 
 ---
 
-## Reference Documents — Auto-Discovered from GitHub at Runtime
+## Reference Documents — Auto-Discovered from Private GitHub Repo
 
-Reference documents are stored in the Miral skills GitHub repository. The skill
-**automatically discovers all available files** at runtime — no hardcoded filenames.
-This means new documents added to the repo are picked up without any skill update.
+Reference documents live in a **private** GitHub repository and are accessed via
+the **connected GitHub MCP integration** (no PAT or public URL needed). The skill
+auto-discovers ALL files in the documents folder at runtime — new files added to
+GitHub are picked up automatically without any skill update required.
 
 ### Repository Details
 ```
-Owner : miralaipc
-Repo  : skills
-Branch: dev
-Path  : miral-hotel-investment-analysis/documents
+Owner  : miralaipc
+Repo   : skills
+Branch : dev
+Path   : miral-hotel-investment-analysis/documents
 ```
 
-### Step 1 — Always Auto-Discover First
+---
 
-At the start of every analysis, call the GitHub Contents API to list all files
-currently in the documents folder:
+### Step 1 — Auto-Discover All Documents
+
+At the start of every analysis, list all files currently in the documents folder
+using the GitHub MCP tool:
 
 ```
-web_fetch("https://api.github.com/repos/miralaipc/skills/contents/miral-hotel-investment-analysis/documents?ref=dev")
+mcp__github__get_file_contents(
+  owner  = "miralaipc",
+  repo   = "skills",
+  path   = "miral-hotel-investment-analysis/documents",
+  branch = "dev"
+)
 ```
 
-This returns a JSON array. Each item has:
-- `name`       — filename (e.g. `uae-market-benchmarks.md`)
-- `download_url` — direct raw URL to fetch the file content
+This returns a directory listing. Parse it to get all filenames currently present.
+**Do not hardcode filenames** — the folder grows over time as Miral adds new documents.
 
-**Parse the response to get the full current file list.** Do not assume which files
-exist — the folder may have grown since the skill was last updated.
+---
 
 ### Step 2 — Select Relevant Documents
 
-From the discovered file list, select which files to fetch based on the user's task.
-Use the filename and any description hints to match relevance:
+From the discovered file list, decide which files are relevant to the current task.
+Match by filename keywords:
 
-| If the task involves... | Likely relevant filenames contain... |
-|------------------------|--------------------------------------|
-| RevPAR, ADR, occupancy, seasonality, F1, supply | `benchmark`, `market`, `kpi`, `performance` |
-| DCF, IRR, cap rate, NOI, CapEx, sensitivity, PIP | `financial`, `model`, `assumption`, `dcf` |
-| Hotel profiles, comp sets, brand fees | `hotel`, `profile`, `comp`, `brand` |
-| Full IC memo / complete analysis | fetch ALL discovered files |
+| If the task involves... | Fetch files whose names contain... |
+|---|---|
+| RevPAR, ADR, occupancy, seasonality, F1 impact, supply pipeline | `benchmark`, `market`, `kpi`, `performance` |
+| DCF, IRR, cap rate, NOI, CapEx, sensitivity matrix, PIP | `financial`, `model`, `assumption`, `dcf` |
+| Hotel profiles, comp sets, brand fees, property detail | `hotel`, `profile`, `comp`, `brand` |
+| Full investment analysis, IC memo, or portfolio review | fetch **all** discovered files |
 
-If unsure, fetch all — it's better to have more context than to miss a document.
+When in doubt — fetch all. More context is always better than missing a key document.
 
-### Step 3 — Fetch File Contents
+---
 
-For each selected file, use its `download_url` from the Step 1 response:
+### Step 3 — Fetch Each File's Content
+
+For each selected file, fetch its content using the GitHub MCP:
 
 ```
-web_fetch(<download_url from Contents API response>)
+mcp__github__get_file_contents(
+  owner  = "miralaipc",
+  repo   = "skills",
+  path   = "miral-hotel-investment-analysis/documents/<filename>",
+  branch = "dev"
+)
 ```
 
-Raw URLs follow this pattern (but always prefer the `download_url` from the API):
-```
-https://raw.githubusercontent.com/miralaipc/skills/refs/heads/dev/miral-hotel-investment-analysis/documents/<filename>
-```
+The tool returns the file content directly. Read it fully before beginning analysis.
+Treat all fetched content as the **single source of truth** — always preferred over
+built-in knowledge in this SKILL.md.
 
-### Step 4 — Use the Content
+---
 
-Read and incorporate the fetched document content into your analysis.
-Treat all fetched content as authoritative — it is the single source of truth
-for Miral-specific benchmarks, assumptions, and hotel profiles.
+### Step 4 — Confirm to User
 
-### Fetch Error Handling
+Always tell the user what was found and loaded before starting the analysis. Example:
+
+> *"Found 5 documents in the repository. Loading 2 relevant to this analysis:
+> `uae-market-benchmarks.md` and `financial-model-assumptions.md`."*
+
+---
+
+### Error Handling
 
 | Scenario | Action |
-|----------|--------|
-| Contents API returns empty array | Warn user: "No documents found in GitHub repo. Check repo path and branch." |
-| Contents API fails (network/403) | Warn user, proceed with built-in SKILL.md knowledge only, flag all figures with `[VERIFY]` |
-| Individual file fetch fails | Skip that file, note it, continue with others |
-| File is not markdown (e.g. `.xlsx`, `.pdf`) | Skip — only process `.md` and `.txt` files |
-
-Always tell the user how many documents were discovered and which ones were loaded,
-e.g.: *"Found 5 documents in the repository. Loaded 2 relevant to this analysis:
-`uae-market-benchmarks.md` and `financial-model-assumptions.md`."*
+|---|---|
+| Directory listing returns empty | Warn: "No documents found — check repo path and branch." Proceed with built-in SKILL.md knowledge |
+| GitHub MCP not connected / auth fails | Warn user to check GitHub integration in Claude Code settings. Proceed with built-in knowledge, flag all figures `[VERIFY]` |
+| Individual file fetch fails | Skip that file, note it, continue with others that loaded successfully |
+| File is not `.md` or `.txt` (e.g. `.xlsx`, `.pdf`) | Skip — only process text-based files |
+| MCP tool name differs in your Claude Code version | Try `github__get_file_contents` or `mcp__github__get_file_contents` — check available tools |
 
 ---
 
