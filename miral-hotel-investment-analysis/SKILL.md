@@ -271,16 +271,81 @@ Comp set definition, STR UAE / CBRE MENA data sources, key assumptions table
 
 ---
 
-## Bundled Reference Documents
+## Reference Documents — Auto-Discovered from GitHub at Runtime
 
-Load these files when you need deeper detail — do not load all three upfront;
-load only the one relevant to the current task:
+Reference documents are stored in the Miral skills GitHub repository. The skill
+**automatically discovers all available files** at runtime — no hardcoded filenames.
+This means new documents added to the repo are picked up without any skill update.
 
-| File | When to Load |
-|------|-------------|
-| `references/uae-market-benchmarks.md` | When benchmarking KPIs, checking historical occupancy/ADR/RevPAR, building seasonality model, or assessing supply pipeline |
-| `references/financial-model-assumptions.md` | When building a DCF, running cap rate analysis, constructing sensitivity matrix, or checking financial model assumptions |
-| `references/hotel-profiles-comp-sets.md` | When profiling a specific Miral hotel, constructing a comp set, or checking brand fee structures |
+### Repository Details
+```
+Owner : miralaipc
+Repo  : skills
+Branch: dev
+Path  : miral-hotel-investment-analysis/documents
+```
+
+### Step 1 — Always Auto-Discover First
+
+At the start of every analysis, call the GitHub Contents API to list all files
+currently in the documents folder:
+
+```
+web_fetch("https://api.github.com/repos/miralaipc/skills/contents/miral-hotel-investment-analysis/documents?ref=dev")
+```
+
+This returns a JSON array. Each item has:
+- `name`       — filename (e.g. `uae-market-benchmarks.md`)
+- `download_url` — direct raw URL to fetch the file content
+
+**Parse the response to get the full current file list.** Do not assume which files
+exist — the folder may have grown since the skill was last updated.
+
+### Step 2 — Select Relevant Documents
+
+From the discovered file list, select which files to fetch based on the user's task.
+Use the filename and any description hints to match relevance:
+
+| If the task involves... | Likely relevant filenames contain... |
+|------------------------|--------------------------------------|
+| RevPAR, ADR, occupancy, seasonality, F1, supply | `benchmark`, `market`, `kpi`, `performance` |
+| DCF, IRR, cap rate, NOI, CapEx, sensitivity, PIP | `financial`, `model`, `assumption`, `dcf` |
+| Hotel profiles, comp sets, brand fees | `hotel`, `profile`, `comp`, `brand` |
+| Full IC memo / complete analysis | fetch ALL discovered files |
+
+If unsure, fetch all — it's better to have more context than to miss a document.
+
+### Step 3 — Fetch File Contents
+
+For each selected file, use its `download_url` from the Step 1 response:
+
+```
+web_fetch(<download_url from Contents API response>)
+```
+
+Raw URLs follow this pattern (but always prefer the `download_url` from the API):
+```
+https://raw.githubusercontent.com/miralaipc/skills/refs/heads/dev/miral-hotel-investment-analysis/documents/<filename>
+```
+
+### Step 4 — Use the Content
+
+Read and incorporate the fetched document content into your analysis.
+Treat all fetched content as authoritative — it is the single source of truth
+for Miral-specific benchmarks, assumptions, and hotel profiles.
+
+### Fetch Error Handling
+
+| Scenario | Action |
+|----------|--------|
+| Contents API returns empty array | Warn user: "No documents found in GitHub repo. Check repo path and branch." |
+| Contents API fails (network/403) | Warn user, proceed with built-in SKILL.md knowledge only, flag all figures with `[VERIFY]` |
+| Individual file fetch fails | Skip that file, note it, continue with others |
+| File is not markdown (e.g. `.xlsx`, `.pdf`) | Skip — only process `.md` and `.txt` files |
+
+Always tell the user how many documents were discovered and which ones were loaded,
+e.g.: *"Found 5 documents in the repository. Loaded 2 relevant to this analysis:
+`uae-market-benchmarks.md` and `financial-model-assumptions.md`."*
 
 ---
 
