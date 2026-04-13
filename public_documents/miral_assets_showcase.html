@@ -1,0 +1,495 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700;900&display=swap');
+  :root {
+    --miral-teal: #63D8E7;
+    --miral-orange: #FF8902;
+    --miral-dark: #333333;
+    --miral-light: #f8f9fa;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Montserrat', sans-serif; }
+  .deck { width: 100%; background: #fff; }
+
+  /* NAV */
+  .nav { display: flex; align-items: center; justify-content: space-between; padding: 14px 32px; border-bottom: 1px solid #eee; position: sticky; top: 0; background: #fff; z-index: 100; }
+  .nav-logo { font-size: 22px; font-weight: 900; color: var(--miral-dark); letter-spacing: 3px; }
+  .nav-logo span { color: var(--miral-teal); }
+  .nav-tabs { display: flex; gap: 4px; }
+  .nav-tab { padding: 7px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; color: var(--miral-dark); background: none; border: none; cursor: pointer; letter-spacing: 0.5px; opacity: 0.5; transition: all 0.2s; }
+  .nav-tab.active { background: var(--miral-teal); color: #fff; opacity: 1; }
+  .nav-tab:hover { opacity: 1; }
+
+  /* HERO */
+  .hero { position: relative; height: 340px; background: linear-gradient(135deg, #0d2b3e 0%, #1a4a6b 60%, #0f3d54 100%); display: flex; flex-direction: column; justify-content: center; padding: 0 48px; overflow: hidden; }
+  .hero-bg-shapes { position: absolute; inset: 0; overflow: hidden; }
+  .hero-circle { position: absolute; border-radius: 50%; opacity: 0.07; }
+  .c1 { width: 500px; height: 500px; background: var(--miral-teal); right: -120px; top: -180px; }
+  .c2 { width: 260px; height: 260px; background: var(--miral-orange); right: 200px; bottom: -120px; }
+  .c3 { width: 140px; height: 140px; background: var(--miral-teal); left: 60%; top: 20px; }
+  .hero-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 3px; color: var(--miral-teal); margin-bottom: 12px; text-transform: uppercase; }
+  .hero-title { font-size: 42px; font-weight: 900; color: #fff; line-height: 1.1; margin-bottom: 14px; max-width: 600px; }
+  .hero-title span { color: var(--miral-teal); }
+  .hero-sub { font-size: 14px; font-weight: 300; color: rgba(255,255,255,0.7); max-width: 480px; line-height: 1.7; }
+  .hero-stats { display: flex; gap: 36px; margin-top: 28px; }
+  .hero-stat { text-align: left; }
+  .hero-stat-val { font-size: 28px; font-weight: 900; color: var(--miral-teal); }
+  .hero-stat-lbl { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; color: rgba(255,255,255,0.5); text-transform: uppercase; margin-top: 2px; }
+
+  /* PANEL */
+  .panel { display: none; padding: 32px; }
+  .panel.active { display: block; }
+
+  /* SECTION TITLE */
+  .section-title { font-size: 11px; font-weight: 700; letter-spacing: 3px; color: var(--miral-teal); text-transform: uppercase; margin-bottom: 6px; }
+  .section-headline { font-size: 24px; font-weight: 900; color: var(--miral-dark); margin-bottom: 24px; }
+  .section-headline span { color: var(--miral-orange); }
+
+  /* ASSET GRID */
+  .asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .asset-card { background: #fff; border: 0.5px solid #e5e5e5; border-radius: 12px; overflow: hidden; cursor: pointer; transition: transform 0.18s, box-shadow 0.18s; }
+  .asset-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+  .asset-card.selected { border: 2px solid var(--miral-teal); }
+  .asset-thumb { height: 110px; display: flex; align-items: center; justify-content: center; font-size: 36px; position: relative; overflow: hidden; }
+  .asset-thumb-label { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.55); color: #fff; font-size: 9px; font-weight: 700; letter-spacing: 1px; padding: 3px 8px; border-radius: 20px; text-transform: uppercase; }
+  .asset-body { padding: 14px; }
+  .asset-name { font-size: 13px; font-weight: 700; color: var(--miral-dark); margin-bottom: 4px; }
+  .asset-type { font-size: 10px; font-weight: 700; color: var(--miral-teal); letter-spacing: 1px; text-transform: uppercase; }
+  .asset-kpi { font-size: 12px; color: #888; margin-top: 8px; font-weight: 400; }
+  .asset-kpi strong { color: var(--miral-orange); font-weight: 700; }
+
+  /* DETAIL DRAWER */
+  .drawer { background: #f6fbfd; border: 0.5px solid #d6f0f5; border-radius: 14px; padding: 24px; margin-bottom: 32px; display: none; }
+  .drawer.open { display: block; }
+  .drawer-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 18px; }
+  .drawer-title { font-size: 20px; font-weight: 900; color: var(--miral-dark); }
+  .drawer-sub { font-size: 12px; font-weight: 300; color: #777; margin-top: 4px; }
+  .drawer-close { background: none; border: none; cursor: pointer; font-size: 18px; color: #aaa; padding: 0 4px; }
+  .kpi-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+  .kpi-chip { background: #fff; border: 0.5px solid #ddd; border-radius: 8px; padding: 10px 16px; flex: 1; min-width: 100px; }
+  .kpi-chip-val { font-size: 20px; font-weight: 900; color: var(--miral-dark); }
+  .kpi-chip-lbl { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: #aaa; text-transform: uppercase; margin-top: 2px; }
+  .kpi-chip-val.orange { color: var(--miral-orange); }
+  .kpi-chip-val.teal { color: var(--miral-teal); }
+  .insight-list { list-style: none; padding: 0; }
+  .insight-list li { padding: 8px 0; border-bottom: 0.5px solid #e5e5e5; font-size: 13px; color: var(--miral-dark); font-weight: 400; padding-left: 18px; position: relative; }
+  .insight-list li:before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 6px; height: 6px; border-radius: 50%; background: var(--miral-teal); }
+  .insight-list li:last-child { border-bottom: none; }
+
+  /* METRICS PANEL */
+  .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 28px; }
+  .metric-card { background: #fff; border: 0.5px solid #e5e5e5; border-radius: 10px; padding: 18px; }
+  .metric-val { font-size: 28px; font-weight: 900; color: var(--miral-dark); }
+  .metric-lbl { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: #aaa; text-transform: uppercase; margin-top: 4px; }
+  .metric-delta { font-size: 12px; font-weight: 700; margin-top: 6px; }
+  .up { color: #2ecc71; } .down { color: #e74c3c; }
+
+  /* STRATEGIC */
+  .strategic-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .strat-card { background: #fff; border: 0.5px solid #e5e5e5; border-radius: 12px; padding: 20px; }
+  .strat-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 12px; }
+  .strat-title { font-size: 14px; font-weight: 700; color: var(--miral-dark); margin-bottom: 6px; }
+  .strat-body { font-size: 12px; font-weight: 300; color: #777; line-height: 1.6; }
+  .priority-bar { height: 4px; background: #eee; border-radius: 2px; margin-top: 14px; overflow: hidden; }
+  .priority-fill { height: 100%; border-radius: 2px; }
+
+  /* FOOTER BAR */
+  .footer-bar { padding: 18px 32px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #eee; background: #fff; }
+  .footer-tag { font-size: 10px; font-weight: 700; letter-spacing: 2px; color: #bbb; text-transform: uppercase; }
+  .footer-cta { background: var(--miral-teal); color: #fff; border: none; border-radius: 20px; padding: 9px 22px; font-size: 12px; font-weight: 700; cursor: pointer; letter-spacing: 0.5px; transition: background 0.2s; }
+  .footer-cta:hover { background: #45c8d8; }
+
+  .divider { height: 1px; background: #f0f0f0; margin: 0 32px 28px; }
+</style>
+
+<div class="deck">
+  <!-- NAV -->
+  <div class="nav">
+    <div class="nav-logo">MIR<span>AL</span></div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="switchPanel('assets')">Assets</button>
+      <button class="nav-tab" onclick="switchPanel('performance')">Performance</button>
+      <button class="nav-tab" onclick="switchPanel('strategy')">Strategy</button>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-bg-shapes">
+      <div class="hero-circle c1"></div>
+      <div class="hero-circle c2"></div>
+      <div class="hero-circle c3"></div>
+    </div>
+    <div class="hero-eyebrow">Destination Leadership · Abu Dhabi</div>
+    <div class="hero-title">World-Class<br><span>Experiences.</span> One Island.</div>
+    <div class="hero-sub">Miral shapes the future of tourism on Yas Island — delivering integrated leisure, entertainment, and hospitality across 25 km².</div>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="hero-stat-val">30M+</div><div class="hero-stat-lbl">Annual Visitors</div></div>
+      <div class="hero-stat"><div class="hero-stat-val">AED 75B</div><div class="hero-stat-lbl">Investment Vision</div></div>
+      <div class="hero-stat"><div class="hero-stat-val">7</div><div class="hero-stat-lbl">Flagship Assets</div></div>
+      <div class="hero-stat"><div class="hero-stat-val">#1</div><div class="hero-stat-lbl">MENA Theme Park Dest.</div></div>
+    </div>
+  </div>
+
+  <!-- ASSETS PANEL -->
+  <div class="panel active" id="panel-assets">
+    <div class="section-title" style="margin-top:8px">Portfolio Overview</div>
+    <div class="section-headline">Flagship <span>Destinations</span></div>
+
+    <div class="drawer" id="drawer">
+      <div class="drawer-header">
+        <div>
+          <div class="drawer-title" id="drawer-title">Asset Name</div>
+          <div class="drawer-sub" id="drawer-sub">Category</div>
+        </div>
+        <button class="drawer-close" onclick="closeDrawer()">✕</button>
+      </div>
+      <div class="kpi-row" id="drawer-kpis"></div>
+      <ul class="insight-list" id="drawer-insights"></ul>
+    </div>
+
+    <div class="asset-grid" id="asset-grid"></div>
+  </div>
+
+  <!-- PERFORMANCE PANEL -->
+  <div class="panel" id="panel-performance">
+    <div class="section-title" style="margin-top:8px">FY 2024–25</div>
+    <div class="section-headline">Portfolio <span>Performance</span></div>
+    <div class="metrics-grid" id="metrics-grid"></div>
+    <div style="background:#fff;border:0.5px solid #e5e5e5;border-radius:12px;padding:20px;margin-bottom:20px;">
+      <div style="font-size:12px;font-weight:700;color:var(--miral-dark);margin-bottom:16px;letter-spacing:1px;text-transform:uppercase;">Visitor Trend — Yas Island</div>
+      <canvas id="trendChart" height="140"></canvas>
+    </div>
+    <div style="background:#fff;border:0.5px solid #e5e5e5;border-radius:12px;padding:20px;">
+      <div style="font-size:12px;font-weight:700;color:var(--miral-dark);margin-bottom:14px;letter-spacing:1px;text-transform:uppercase;">Revenue Mix by Segment</div>
+      <div id="rev-bars"></div>
+    </div>
+  </div>
+
+  <!-- STRATEGY PANEL -->
+  <div class="panel" id="panel-strategy">
+    <div class="section-title" style="margin-top:8px">Vision 2030</div>
+    <div class="section-headline">Strategic <span>Priorities</span></div>
+    <div class="strategic-grid" id="strat-grid"></div>
+    <div style="background:var(--miral-dark);border-radius:14px;padding:24px;color:#fff;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:3px;color:var(--miral-teal);text-transform:uppercase;margin-bottom:8px;">Board Ask</div>
+      <div style="font-size:18px;font-weight:900;margin-bottom:10px;">Three Decisions Required</div>
+      <div style="display:flex;flex-direction:column;gap:10px;" id="asks"></div>
+    </div>
+  </div>
+
+  <div class="divider" style="margin-top:16px;"></div>
+
+  <div class="footer-bar">
+    <div class="footer-tag">Confidential · Miral Board Presentation · Q2 2025</div>
+    <button class="footer-cta" onclick="sendPrompt('Give me a deeper dive on Miral\'s financial performance and growth outlook')">Deep Dive ↗</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+const ASSETS = [
+  {
+    id: 'ferrari',
+    name: 'Ferrari World Abu Dhabi',
+    type: 'Theme Park',
+    color: '#c0392b',
+    bg: '#fdf0ef',
+    emoji: '🏎️',
+    badge: 'Flagship',
+    kpi: { visitors: '2.2M', nps: '74', rev: 'AED 480M' },
+    stats: [
+      { val: '2.2M', lbl: 'Annual Visitors', cls: 'teal' },
+      { val: '74', lbl: 'NPS Score', cls: 'orange' },
+      { val: 'AED 480M', lbl: 'Revenue', cls: '' }
+    ],
+    insights: [
+      'Home to Formula Rossa — world\'s fastest roller coaster at 240 km/h',
+      'Expanded "Driving Experience" zone driving 18% uplift in per-cap spend',
+      'International visitor mix: 62% — highest across Miral portfolio',
+      'New F1 simulator suite opening Q3 2025'
+    ]
+  },
+  {
+    id: 'warnerBros',
+    name: 'Warner Bros. World',
+    type: 'Theme Park',
+    color: '#2980b9',
+    bg: '#edf5fc',
+    emoji: '🦸',
+    badge: 'IP Partner',
+    kpi: { visitors: '2.1M', nps: '81', rev: 'AED 430M' },
+    stats: [
+      { val: '2.1M', lbl: 'Annual Visitors', cls: 'teal' },
+      { val: '81', lbl: 'NPS Score', cls: 'orange' },
+      { val: 'AED 430M', lbl: 'Revenue', cls: '' }
+    ],
+    insights: [
+      'Highest NPS in portfolio — 6 immersive lands, 29 rides',
+      'DC Universe zone driving premium per-cap of AED 340',
+      'Family segment share 71% — strongest family pull on island',
+      'Merchandise revenue +22% YoY after Batman zone refresh'
+    ]
+  },
+  {
+    id: 'seaworld',
+    name: 'SeaWorld Yas Island',
+    type: 'Marine Theme Park',
+    color: '#1abc9c',
+    bg: '#eafaf6',
+    emoji: '🌊',
+    badge: 'Newest',
+    kpi: { visitors: '1.5M', nps: '78', rev: 'AED 310M' },
+    stats: [
+      { val: '1.5M', lbl: 'Annual Visitors', cls: 'teal' },
+      { val: '78', lbl: 'NPS Score', cls: 'orange' },
+      { val: 'AED 310M', lbl: 'Revenue', cls: '' }
+    ],
+    insights: [
+      'Opened January 2023 — first SeaWorld outside the Americas',
+      'No animal shows model driving strong sustainability positioning',
+      'Fastest ramp-up of any Miral attraction — 1.5M in Year 1',
+      'Educator program reaching 40,000 UAE school students annually'
+    ]
+  },
+  {
+    id: 'yas-waterworld',
+    name: 'Yas Waterworld',
+    type: 'Water Park',
+    color: '#3498db',
+    bg: '#eaf4fd',
+    emoji: '💦',
+    badge: 'Iconic',
+    kpi: { visitors: '1.8M', nps: '76', rev: 'AED 290M' },
+    stats: [
+      { val: '1.8M', lbl: 'Annual Visitors', cls: 'teal' },
+      { val: '76', lbl: 'NPS Score', cls: 'orange' },
+      { val: 'AED 290M', lbl: 'Revenue', cls: '' }
+    ],
+    insights: [
+      'Largest water park in the Middle East at 15 hectares',
+      'Pearl theme drives unique cultural storytelling differentiation',
+      'Annual pass penetration 34% — highest repeat-visit driver',
+      'Cabana premium revenue up 31% following luxury tier launch'
+    ]
+  },
+  {
+    id: 'yas-mall',
+    name: 'Yas Mall',
+    type: 'Retail & F&B',
+    color: '#9b59b6',
+    bg: '#f5eefb',
+    emoji: '🛍️',
+    badge: 'Anchor',
+    kpi: { visitors: '22M', nps: '69', rev: 'AED 1.1B' },
+    stats: [
+      { val: '22M', lbl: 'Annual Footfall', cls: 'teal' },
+      { val: 'AED 1.1B', lbl: 'Revenue', cls: 'orange' },
+      { val: '94%', lbl: 'Occupancy', cls: '' }
+    ],
+    insights: [
+      'Largest mall in Abu Dhabi — 235,000 sqm, 400+ brands',
+      'F&B cluster expanded to 90 outlets driving dwell time +18 min',
+      'Fashion luxury segment rents up 14% on strong demand',
+      'Flagship role as gateway to Yas Island driving cross-sell'
+    ]
+  },
+  {
+    id: 'yas-marina',
+    name: 'Yas Marina Circuit',
+    type: 'Events & Motorsport',
+    color: '#e74c3c',
+    bg: '#fdf0ef',
+    emoji: '🏁',
+    badge: 'F1 Host',
+    kpi: { visitors: '3.5M', nps: '82', rev: 'AED 620M' },
+    stats: [
+      { val: '3.5M', lbl: 'Event Visitors', cls: 'teal' },
+      { val: '82', lbl: 'NPS Score', cls: 'orange' },
+      { val: 'AED 620M', lbl: 'Revenue', cls: '' }
+    ],
+    insights: [
+      'Abu Dhabi Grand Prix generates AED 1B+ in broader economic impact',
+      'Year-round calendar with 40+ events beyond F1 season',
+      'Corporate hospitality package revenue +38% in 2024',
+      'Season Finale slot secured through 2030 under F1 contract'
+    ]
+  },
+  {
+    id: 'hotels',
+    name: 'Yas Island Hotels',
+    type: 'Hospitality',
+    color: '#f39c12',
+    bg: '#fef9ec',
+    emoji: '🏨',
+    badge: '4,000 Keys',
+    kpi: { visitors: '—', nps: '79', rev: 'AED 980M' },
+    stats: [
+      { val: '81%', lbl: 'Avg. Occupancy', cls: 'teal' },
+      { val: 'AED 720', lbl: 'Avg. RevPAR', cls: 'orange' },
+      { val: 'AED 980M', lbl: 'Revenue', cls: '' }
+    ],
+    insights: [
+      '4,000+ keys across 7 managed properties — Hilton, Marriott, Rotana',
+      'RevPAR AED 720 — outperforming Abu Dhabi city average by 12%',
+      'Packaged hotel + park bundles driving 3× longer stays',
+      'New W Hotel (450 keys) opening Q4 2025 adds luxury tier'
+    ]
+  }
+];
+
+const METRICS = [
+  { val: 'AED 4.2B', lbl: 'Total Portfolio Revenue', delta: '+14% YoY', up: true },
+  { val: '30M+', lbl: 'Total Island Visitors', delta: '+11% YoY', up: true },
+  { val: '78', lbl: 'Blended NPS', delta: '+3 pts YoY', up: true },
+  { val: '68%', lbl: 'International Visitor Mix', delta: '+4pp YoY', up: true },
+  { val: 'AED 340', lbl: 'Avg. Per-Cap Spend', delta: '+8% YoY', up: true },
+  { val: '81%', lbl: 'Hotel Occupancy', delta: '-1pp YoY', up: false }
+];
+
+const STRATEGIES = [
+  { icon: '🌐', color: '#edf5fc', title: 'Global IP Expansion', body: 'Secure 2 new IP partnerships by 2027 to diversify theme park appeal and reduce reliance on existing licensors.', priority: 90 },
+  { icon: '🏗️', color: '#eafaf6', title: 'Phase 3 Infrastructure', body: 'AED 8B capex program adding 1,200 hotel keys, 3 new attractions, and expanded transit links by 2028.', priority: 85 },
+  { icon: '📊', color: '#fef9ec', title: 'RevMax Program', body: 'Dynamic pricing, cross-sell bundling, and premium tier expansion targeting AED 420 per-cap by FY2026.', priority: 75 },
+  { icon: '♻️', color: '#f5eefb', title: 'Sustainability 2030', body: 'Net-zero operations by 2030 — solar canopies, EV fleet, and marine conservation tied to SeaWorld brand.', priority: 70 }
+];
+
+const ASKS = [
+  { num: '01', text: 'Approve AED 2.4B Phase 3 capex drawdown for Yas North expansion — decision by Q3 board.' },
+  { num: '02', text: 'Endorse IP partnership term sheet with [undisclosed studio] — NDA confirmation required from 3 board members.' },
+  { num: '03', text: 'Ratify revised RevPAR target of AED 780 and authorize hotel investment committee mandate.' }
+];
+
+function switchPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  event.target.classList.add('active');
+  if (id === 'performance') renderCharts();
+}
+
+let selectedId = null;
+function renderAssets() {
+  const grid = document.getElementById('asset-grid');
+  grid.innerHTML = ASSETS.map(a => `
+    <div class="asset-card ${selectedId === a.id ? 'selected' : ''}" onclick="selectAsset('${a.id}')">
+      <div class="asset-thumb" style="background:${a.bg}">
+        <span style="font-size:40px">${a.emoji}</span>
+        <div class="asset-thumb-label">${a.badge}</div>
+      </div>
+      <div class="asset-body">
+        <div class="asset-name">${a.name}</div>
+        <div class="asset-type">${a.type}</div>
+        <div class="asset-kpi">Visitors <strong>${a.kpi.visitors}</strong> &nbsp;·&nbsp; NPS <strong>${a.kpi.nps}</strong></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectAsset(id) {
+  if (selectedId === id) { selectedId = null; closeDrawer(); renderAssets(); return; }
+  selectedId = id;
+  renderAssets();
+  const a = ASSETS.find(x => x.id === id);
+  document.getElementById('drawer-title').textContent = a.name;
+  document.getElementById('drawer-sub').textContent = a.type + ' — Yas Island, Abu Dhabi';
+  document.getElementById('drawer-kpis').innerHTML = a.stats.map(s => `
+    <div class="kpi-chip">
+      <div class="kpi-chip-val ${s.cls}">${s.val}</div>
+      <div class="kpi-chip-lbl">${s.lbl}</div>
+    </div>
+  `).join('');
+  document.getElementById('drawer-insights').innerHTML = a.insights.map(i => `<li>${i}</li>`).join('');
+  const drawer = document.getElementById('drawer');
+  drawer.classList.add('open');
+  drawer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  selectedId = null;
+  renderAssets();
+}
+
+function renderMetrics() {
+  document.getElementById('metrics-grid').innerHTML = METRICS.map(m => `
+    <div class="metric-card">
+      <div class="metric-val">${m.val}</div>
+      <div class="metric-lbl">${m.lbl}</div>
+      <div class="metric-delta ${m.up ? 'up' : 'down'}">${m.up ? '▲' : '▼'} ${m.delta}</div>
+    </div>
+  `).join('');
+
+  const segs = [
+    { label: 'Theme Parks', pct: 41, color: '#63D8E7' },
+    { label: 'Hospitality', pct: 23, color: '#FF8902' },
+    { label: 'Retail / F&B', pct: 18, color: '#333333' },
+    { label: 'Motorsport & Events', pct: 12, color: '#9b59b6' },
+    { label: 'Other', pct: 6, color: '#bbb' }
+  ];
+  document.getElementById('rev-bars').innerHTML = segs.map(s => `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <div style="font-size:12px;color:#555;width:160px;font-weight:500;flex-shrink:0;">${s.label}</div>
+      <div style="flex:1;background:#f0f0f0;border-radius:3px;height:10px;overflow:hidden;">
+        <div style="width:${s.pct}%;background:${s.color};height:100%;border-radius:3px;transition:width 0.6s;"></div>
+      </div>
+      <div style="font-size:12px;font-weight:700;color:${s.color};width:32px;text-align:right;">${s.pct}%</div>
+    </div>
+  `).join('');
+}
+
+function renderCharts() {
+  const ctx = document.getElementById('trendChart');
+  if (!ctx || ctx._chartBuilt) return;
+  ctx._chartBuilt = true;
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ['FY20', 'FY21', 'FY22', 'FY23', 'FY24', 'FY25'],
+      datasets: [{
+        label: 'Visitors (M)',
+        data: [18, 12, 22, 26, 28, 30.5],
+        borderColor: '#63D8E7',
+        backgroundColor: 'rgba(99,216,231,0.08)',
+        borderWidth: 2.5,
+        pointBackgroundColor: '#63D8E7',
+        pointRadius: 5,
+        fill: true,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: { grid: { color: '#f0f0f0' }, ticks: { font: { size: 11 }, callback: v => v + 'M' } }
+      }
+    }
+  });
+}
+
+function renderStrategy() {
+  document.getElementById('strat-grid').innerHTML = STRATEGIES.map(s => `
+    <div class="strat-card">
+      <div class="strat-icon" style="background:${s.color}">${s.icon}</div>
+      <div class="strat-title">${s.title}</div>
+      <div class="strat-body">${s.body}</div>
+      <div class="priority-bar">
+        <div class="priority-fill" style="width:${s.priority}%;background:var(--miral-teal);"></div>
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('asks').innerHTML = ASKS.map(a => `
+    <div style="display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-bottom:0.5px solid rgba(255,255,255,0.1);">
+      <div style="font-size:22px;font-weight:900;color:var(--miral-orange);line-height:1;flex-shrink:0;">${a.num}</div>
+      <div style="font-size:13px;font-weight:300;color:rgba(255,255,255,0.85);line-height:1.6;">${a.text}</div>
+    </div>
+  `).join('');
+}
+
+renderAssets();
+renderMetrics();
+renderStrategy();
+</script>
