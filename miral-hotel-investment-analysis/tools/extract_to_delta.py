@@ -150,6 +150,35 @@ def extract_xlsx(path: Path) -> list[dict]:
         return [{"sheet_name": "error", "content": f"[Excel extraction failed: {e}]"}]
 
 
+
+def split_into_parts(content: str, max_chars: int = 500000) -> list[str]:
+    """
+    Split large content into multiple parts at paragraph boundaries.
+    Each part stays under max_chars to avoid Databricks parameter size limits.
+    No data is lost — every part is stored as a separate row.
+    """
+    if len(content) <= max_chars:
+        return [content]
+
+    parts = []
+    remaining = content
+
+    while len(remaining) > max_chars:
+        # Find good split point — paragraph break nearest to max_chars
+        split_at = remaining.rfind("\n\n", 0, max_chars)
+        if split_at == -1:
+            split_at = remaining.rfind("\n", 0, max_chars)
+        if split_at == -1:
+            split_at = max_chars
+        parts.append(remaining[:split_at].strip())
+        remaining = remaining[split_at:].strip()
+
+    if remaining:
+        parts.append(remaining)
+
+    return parts
+
+
 def assign_section(file_path: str) -> str | None:
     relative = file_path.replace(f"{DOCUMENTS_BASE}/", "")
     for key in sorted(FOLDER_SECTION_MAP.keys(), key=len, reverse=True):
@@ -305,39 +334,51 @@ def main():
 
             if suffix == ".pdf":
                 content = extract_pdf(local)
-                row_id  = hashlib.sha256(filepath.encode()).hexdigest()[:16]
-                rows.append({
-                    "id":            row_id,
-                    "section":       section,
-                    "source_folder": source_folder,
-                    "github_path":   filepath,
-                    "filename":      filename,
-                    "file_type":     "pdf",
-                    "sheet_name":    None,
-                    "raw_content":    content,
-                    "file_sha":      file_sha,
-                    "uploaded_at":   now,
-                })
-                processed.append(filepath)
-
-            elif suffix in (".xlsx", ".xls"):
-                sheets = extract_xlsx(local)
-                for sheet in sheets:
+                # Split large PDFs into parts — no data lost
+                parts = split_into_parts(content)
+                if len(parts) > 1:
+                    print(f"    ℹ Split into {len(parts)} parts: {filename}")
+                for part_idx, part_content in enumerate(parts):
+                    part_suffix = f"::part{part_idx}" if len(parts) > 1 else ""
                     row_id = hashlib.sha256(
-                        f"{filepath}::{sheet['sheet_name']}".encode()
+                        f"{filepath}{part_suffix}".encode()
                     ).hexdigest()[:16]
                     rows.append({
                         "id":            row_id,
                         "section":       section,
                         "source_folder": source_folder,
                         "github_path":   filepath,
-                        "filename":      filename,
-                        "file_type":     "xlsx",
-                        "sheet_name":    sheet["sheet_name"],
-                        "raw_content":    sheet["content"],
+                        "filename":      filename if len(parts) == 1 else f"{filename} (part {part_idx+1}/{len(parts)})",
+                        "file_type":     "pdf",
+                        "sheet_name":    None,
+                        "raw_content":   part_content,
                         "file_sha":      file_sha,
                         "uploaded_at":   now,
                     })
+                processed.append(filepath)
+
+            elif suffix in (".xlsx", ".xls"):
+                sheets = extract_xlsx(local)
+                for sheet in sheets:
+                    # Split large sheets into parts too
+                    sheet_parts = split_into_parts(sheet["content"])
+                    for part_idx, part_content in enumerate(sheet_parts):
+                        part_suffix = f"::part{part_idx}" if len(sheet_parts) > 1 else ""
+                        row_id = hashlib.sha256(
+                            f"{filepath}::{sheet['sheet_name']}{part_suffix}".encode()
+                        ).hexdigest()[:16]
+                        rows.append({
+                            "id":            row_id,
+                            "section":       section,
+                            "source_folder": source_folder,
+                            "github_path":   filepath,
+                            "filename":      filename,
+                            "file_type":     "xlsx",
+                            "sheet_name":    sheet["sheet_name"] if len(sheet_parts) == 1 else f"{sheet['sheet_name']} (part {part_idx+1})",
+                            "raw_content":   part_content,
+                            "file_sha":      file_sha,
+                            "uploaded_at":   now,
+                        })
                 processed.append(filepath)
             else:
                 skipped.append(filepath)
