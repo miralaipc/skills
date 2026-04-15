@@ -1,0 +1,35 @@
+name: Extract Documents to Databricks
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'miral-hotel-investment-analysis/documents/**'
+  workflow_dispatch:
+
+jobs:
+  extract-and-upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install pdfminer.six pandas openpyxl requests tabulate
+
+      - name: Extract and upload to Databricks
+        env:
+          GITHUB_PAT:           ${{ secrets.MIRAL_GITHUB_PAT }}
+          DATABRICKS_HOST:      https://adb-3821540461636682.2.azuredatabricks.net
+          DATABRICKS_TOKEN:     ${{ secrets.DATABRICKS_PAT }}
+          DATABRICKS_HTTP_PATH: /sql/1.0/warehouses/9a7124860d81a5c1
+        run: |
+          python miral-hotel-investment-analysis/tools/extract_to_delta.py
