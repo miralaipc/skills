@@ -23,7 +23,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pdfminer.six pandas openpyxl requests tabulate
+          pip install pdfminer.six pandas openpyxl requests tabulate databricks-sql-connector
 
       - name: Extract and upload to Databricks
         env:
