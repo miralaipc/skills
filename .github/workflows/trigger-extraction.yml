@@ -25,7 +25,7 @@ jobs:
         run: |
           pip install pdfminer.six pandas openpyxl requests tabulate databricks-sql-connector
 
-      - name: Extract and upload to Databricks
+      - name: Extract and upload raw text to Databricks
         env:
           GITHUB_PAT:           ${{ secrets.MIRAL_GITHUB_PAT }}
           DATABRICKS_HOST:      https://adb-3821540461636682.2.azuredatabricks.net
@@ -33,3 +33,18 @@ jobs:
           DATABRICKS_HTTP_PATH: /sql/1.0/warehouses/9a7124860d81a5c1
         run: |
           python miral-hotel-investment-analysis/tools/extract_to_delta.py
+
+      - name: Trigger Databricks processing job (Claude Haiku + Vector Search)
+        env:
+          DATABRICKS_HOST:  https://adb-3821540461636682.2.azuredatabricks.net
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_PAT }}
+        run: |
+          RUN_ID=$(curl -sf -X POST \
+            "$DATABRICKS_HOST/api/2.1/jobs/run-now" \
+            -H "Authorization: Bearer $DATABRICKS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"job_id\": ${{ secrets.DATABRICKS_PROCESS_JOB_ID }}}" \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['run_id'])")
+
+          echo "Triggered processing job. Run ID: $RUN_ID"
+          echo "Monitor at: https://adb-3821540461636682.2.azuredatabricks.net/jobs/runs/$RUN_ID"
