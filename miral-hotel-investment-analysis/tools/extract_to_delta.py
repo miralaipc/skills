@@ -15,7 +15,7 @@ Environment variables (set as GitHub Actions secrets):
   DATABRICKS_HTTP_PATH — /sql/1.0/warehouses/9a7124860d81a5c1
 
 Tables written:
-  ml_dev.dev_schema.knowledge_base
+  ml_dev.dev_schema.raw_documents
   ml_dev.dev_schema.extraction_log
 """
 
@@ -40,8 +40,9 @@ DOCUMENTS_BASE = "miral-hotel-investment-analysis/documents"
 
 UC_CATALOG = "ml_dev"
 UC_SCHEMA  = "dev_schema"
-KB_TABLE   = f"{UC_CATALOG}.{UC_SCHEMA}.knowledge_base"
+KB_TABLE   = f"{UC_CATALOG}.{UC_SCHEMA}.raw_documents"
 LOG_TABLE  = f"{UC_CATALOG}.{UC_SCHEMA}.extraction_log"
+PROCESS_JOB_ID = os.environ.get("DATABRICKS_PROCESS_JOB_ID", "")
 
 FOLDER_SECTION_MAP = {
     "Brands":                           "brands",
@@ -170,9 +171,9 @@ def ensure_tables():
             filename      STRING    NOT NULL,
             file_type     STRING    NOT NULL,
             sheet_name    STRING,
-            content       STRING    NOT NULL,
+            raw_content   STRING    NOT NULL,
             file_sha      STRING    NOT NULL,
-            extracted_at  TIMESTAMP NOT NULL
+            uploaded_at   TIMESTAMP NOT NULL
         )
         USING DELTA
         PARTITIONED BY (section)
@@ -198,47 +199,44 @@ def ensure_tables():
 
 def upsert_rows(rows: list[dict]):
     """
-    Upsert rows into knowledge_base using MERGE.
-    Only updates rows where file_sha has changed.
-    Batches in groups of 50 to avoid SQL statement size limits.
+    Upsert rows using parameterized queries — safe for any PDF content.
+    Strategy:
+      1. DELETE rows whose file_sha has changed (will be re-inserted)
+      2. INSERT rows that don't exist yet OR were just deleted
+    Avoids MERGE with inline VALUES which breaks on special characters.
     """
     if not rows:
         return
 
-    BATCH = 50
-    for i in range(0, len(rows), BATCH):
-        batch = rows[i:i + BATCH]
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            for i, r in enumerate(rows):
 
-        # Build VALUES string
-        values = []
-        for r in batch:
-            sheet = f"'{r['sheet_name']}'" if r["sheet_name"] else "NULL"
-            # Escape single quotes in content
-            content = r["content"].replace("'", "''")
-            values.append(
-                f"('{r['id']}', '{r['section']}', '{r['source_folder']}', "
-                f"'{r['github_path']}', '{r['filename']}', '{r['file_type']}', "
-                f"{sheet}, '{content}', '{r['file_sha']}', "
-                f"CAST('{r['extracted_at']}' AS TIMESTAMP))"
-            )
+                # Step 1 — delete if file_sha changed
+                cur.execute(
+                    f"DELETE FROM {KB_TABLE} WHERE id = ? AND file_sha != ?",
+                    [r["id"], r["file_sha"]]
+                )
 
-        values_sql = ",\n".join(values)
+                # Step 2 — insert if not exists
+                cur.execute(
+                    f"""INSERT INTO {KB_TABLE}
+                        (id, section, source_folder, github_path, filename,
+                         file_type, sheet_name, raw_content, file_sha, uploaded_at)
+                        SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS TIMESTAMP)
+                        WHERE NOT EXISTS (
+                            SELECT 1 FROM {KB_TABLE} WHERE id = ?
+                        )""",
+                    [
+                        r["id"], r["section"], r["source_folder"],
+                        r["github_path"], r["filename"], r["file_type"],
+                        r["sheet_name"], r["raw_content"], r["file_sha"],
+                        r["uploaded_at"], r["id"]
+                    ]
+                )
 
-        run_sql(f"""
-            MERGE INTO {KB_TABLE} AS target
-            USING (
-                SELECT * FROM (VALUES
-                    {values_sql}
-                ) AS t(id, section, source_folder, github_path, filename,
-                        file_type, sheet_name, content, file_sha, extracted_at)
-            ) AS source ON target.id = source.id
-            WHEN MATCHED AND target.file_sha != source.file_sha THEN UPDATE SET
-                content      = source.content,
-                file_sha     = source.file_sha,
-                extracted_at = source.extracted_at
-            WHEN NOT MATCHED THEN INSERT *
-        """)
-        print(f"  Upserted batch {i // BATCH + 1} ({len(batch)} rows)")
+                if (i + 1) % 10 == 0 or (i + 1) == len(rows):
+                    print(f"  Upserted {i + 1}/{len(rows)} rows")
 
 
 def delete_removed_files(current_paths: set[str]):
@@ -316,9 +314,9 @@ def main():
                     "filename":      filename,
                     "file_type":     "pdf",
                     "sheet_name":    None,
-                    "content":       content,
+                    "raw_content":    content,
                     "file_sha":      file_sha,
-                    "extracted_at":  now,
+                    "uploaded_at":   now,
                 })
                 processed.append(filepath)
 
@@ -336,9 +334,9 @@ def main():
                         "filename":      filename,
                         "file_type":     "xlsx",
                         "sheet_name":    sheet["sheet_name"],
-                        "content":       sheet["content"],
+                        "raw_content":    sheet["content"],
                         "file_sha":      file_sha,
-                        "extracted_at":  now,
+                        "uploaded_at":   now,
                     })
                 processed.append(filepath)
             else:
